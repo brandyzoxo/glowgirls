@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "378503034814",
+    "project_id": "glowgirls-1a096",
+    "storage_bucket": "glowgirls-1a096.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:378503034814:android:e86ba0e76a59697d956bef",
+        "android_client_info": {
+          "package_name": "com.example.glowgirls"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyApoEzec3phfvIrBj7_0gktTUWg34UzRJY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
