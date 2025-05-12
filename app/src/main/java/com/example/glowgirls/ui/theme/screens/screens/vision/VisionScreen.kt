@@ -11,14 +11,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -42,6 +42,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.glowgirls.data.vision.VisionViewModel
 import com.example.glowgirls.models.vision.Vision
+import com.example.glowgirls.navigation.ROUTE_HOME
 import com.example.glowgirls.navigation.ROUTE_VISION_BOARD
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
@@ -101,14 +102,14 @@ fun VisionScreen(navController: NavController, viewModel: VisionViewModel = view
     val groupedVisions = visions.groupBy { it.category }
 
     // Image picker launcher
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        imageUri = uri
-        if (uri != null) {
-            coroutineScope.launch {
-                snackbarHostState.showSnackbar("Image selected successfully")
-            }
-        }
-    }
+//    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+//        imageUri = uri
+//        if (uri != null) {
+//            coroutineScope.launch {
+//                snackbarHostState.showSnackbar("Image selected successfully")
+//            }
+//        }
+//    }
 
     // Authentication Check - Add error handling
     LaunchedEffect(Unit) {
@@ -134,22 +135,97 @@ fun VisionScreen(navController: NavController, viewModel: VisionViewModel = view
             topBar = {
                 TopAppBar(
                     title = {
-                        Text(
-                            "Dream Visions",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 24.sp
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            colorScheme.primaryContainer,
+                                            colorScheme.primary.copy(alpha = 0.7f)
+                                        )
+                                    )
+                                )
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .clickable { navController.navigate(ROUTE_HOME) }
+                        ) {
+                            Icon(
+                                Icons.Filled.AutoAwesome,
+                                contentDescription = null,
+                                tint = colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                "Dream Visions",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 22.sp,
+                                color = colorScheme.onPrimaryContainer
+                            )
+                        }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = colorScheme.primaryContainer,
+                        containerColor = Color.Transparent,
                         titleContentColor = colorScheme.primary
                     ),
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(
+                                Icons.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = colorScheme.primary
+                            )
+                        }
+                    },
                     actions = {
-                        IconButton(onClick = { navController.navigate(ROUTE_VISION_BOARD) }) {
+//                        IconButton(onClick = { isDarkMode = !isDarkMode }) {
+//                            Icon(
+//                                if (isDarkMode) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+//                                contentDescription = "Toggle Theme",
+//                                tint = colorScheme.primary
+//                            )
+//                        }
+//                        IconButton(onClick = { showSearch = true }) {
+//                            Icon(
+//                                Icons.Filled.Search,
+//                                contentDescription = "Search",
+//                                tint = colorScheme.primary
+//                            )
+//                        }
+//                        BadgedBox(
+//                            badge = {
+//                                if (hasUnreadNotifications) {
+//                                    Badge(containerColor = colorScheme.error)
+//                                }
+//                            }
+//                        ) {
+//                            IconButton(onClick = { showNotifications = true }) {
+//                                Icon(
+//                                    Icons.Filled.Notifications,
+//                                    contentDescription = "Notifications",
+//                                    tint = colorScheme.primary
+//                                )
+//                            }
+//                        }
+                        IconButton(
+                            onClick = { navController.navigate(ROUTE_VISION_BOARD) },
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            colorScheme.primary,
+                                            colorScheme.tertiary
+                                        )
+                                    )
+                                )
+                        ) {
                             Icon(
                                 Icons.Filled.Dashboard,
                                 contentDescription = "Vision Board",
-                                tint = colorScheme.primary
+                                tint = colorScheme.onPrimary
                             )
                         }
                     }
@@ -169,401 +245,390 @@ fun VisionScreen(navController: NavController, viewModel: VisionViewModel = view
                 }
             }
         ) { paddingValues ->
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Motivational Quote with Animation
-                item {
-                    Card(
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    elevation = CardDefaults.cardElevation(6.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = colorScheme.secondaryContainer
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        elevation = CardDefaults.cardElevation(6.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = colorScheme.secondaryContainer
-                        ),
-                        shape = RoundedCornerShape(16.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        colorScheme.secondaryContainer,
+                                        colorScheme.secondaryContainer.copy(alpha = 0.7f)
+                                    )
+                                )
+                            )
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            colorScheme.secondaryContainer,
-                                            colorScheme.secondaryContainer.copy(alpha = 0.7f)
-                                        )
-                                    )
-                                )
-                                .padding(20.dp),
-                            contentAlignment = Alignment.Center
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
+                            Icon(
+                                Icons.Outlined.AutoAwesome,
+                                contentDescription = "Inspiration",
+                                tint = colorScheme.primary,
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn(animationSpec = tween(1000)),
+                                exit = fadeOut(animationSpec = tween(1000))
                             ) {
-                                Icon(
-                                    Icons.Outlined.AutoAwesome,
-                                    contentDescription = "Inspiration",
-                                    tint = colorScheme.primary,
-                                    modifier = Modifier.size(36.dp)
+                                Text(
+                                    text = "\"${viewModel.motivationalQuote.value}\"",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontStyle = FontStyle.Italic,
+                                        textAlign = TextAlign.Center,
+                                        lineHeight = 28.sp
+                                    ),
+                                    color = colorScheme.primary,
+                                    modifier = Modifier.padding(bottom = 16.dp)
                                 )
-                                Spacer(modifier = Modifier.height(12.dp))
+                            }
 
-                                AnimatedVisibility(
-                                    visible = true,
-                                    enter = fadeIn(animationSpec = tween(1000)),
-                                    exit = fadeOut(animationSpec = tween(1000))
-                                ) {
-                                    Text(
-                                        text = "\"${viewModel.motivationalQuote.value}\"",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontStyle = FontStyle.Italic,
-                                            textAlign = TextAlign.Center,
-                                            lineHeight = 28.sp
-                                        ),
-                                        color = colorScheme.primary,
-                                        modifier = Modifier.padding(bottom = 16.dp)
-                                    )
-                                }
-
-                                TextButton(
-                                    onClick = { viewModel.refreshQuote() },
-                                    colors = ButtonDefaults.textButtonColors(
-                                        contentColor = colorScheme.primary
-                                    )
-                                ) {
-                                    Text("✨ New Quote")
-                                }
+                            TextButton(
+                                onClick = { viewModel.refreshQuote() },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = colorScheme.primary
+                                )
+                            ) {
+                                Text("✨ New Quote")
                             }
                         }
                     }
                 }
 
                 // Search Bar
-                item {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        label = { Text("Search Your Visions") },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = "Search",
-                                tint = colorScheme.primary
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = colorScheme.primary,
-                            unfocusedBorderColor = colorScheme.primary.copy(alpha = 0.5f),
-                            focusedLabelColor = colorScheme.primary
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search Your Visions") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = colorScheme.primary
                         )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = colorScheme.primary,
+                        unfocusedBorderColor = colorScheme.primary.copy(alpha = 0.5f),
+                        focusedLabelColor = colorScheme.primary
                     )
-                }
+                )
 
                 // Navigation Buttons
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { showDashboard = !showDashboard },
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            brush = SolidColor(if (showDashboard) colorScheme.primary else colorScheme.primary.copy(alpha = 0.5f))
+                        ),
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (showDashboard) colorScheme.primaryContainer else Color.Transparent,
+                            contentColor = colorScheme.primary
+                        )
                     ) {
-                        OutlinedButton(
-                            onClick = { showDashboard = !showDashboard },
-                            border = ButtonDefaults.outlinedButtonBorder.copy(
-                                brush = SolidColor(if (showDashboard) colorScheme.primary else colorScheme.primary.copy(alpha = 0.5f))
-                            ),
-                            shape = RoundedCornerShape(24.dp),
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (showDashboard) colorScheme.primaryContainer else Color.Transparent,
-                                contentColor = colorScheme.primary
-                            )
-                        ) {
-                            Icon(
-                                Icons.Outlined.InsertChart,
-                                contentDescription = "Dashboard",
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Progress")
-                        }
+                        Icon(
+                            Icons.Outlined.InsertChart,
+                            contentDescription = "Dashboard",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Progress")
+                    }
 
-                        OutlinedButton(
-                            onClick = { showCalendar = !showCalendar },
-                            border = ButtonDefaults.outlinedButtonBorder.copy(
-                                brush = SolidColor(if (showCalendar) colorScheme.primary else colorScheme.primary.copy(alpha = 0.5f))
-                            ),
-                            shape = RoundedCornerShape(24.dp),
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (showCalendar) colorScheme.primaryContainer else Color.Transparent,
-                                contentColor = colorScheme.primary
-                            )
-                        ) {
-                            Icon(
-                                Icons.Outlined.CalendarToday,
-                                contentDescription = "Calendar",
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Timeline")
-                        }
+                    OutlinedButton(
+                        onClick = { showCalendar = !showCalendar },
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            brush = SolidColor(if (showCalendar) colorScheme.primary else colorScheme.primary.copy(alpha = 0.5f))
+                        ),
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (showCalendar) colorScheme.primaryContainer else Color.Transparent,
+                            contentColor = colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Outlined.CalendarToday,
+                            contentDescription = "Calendar",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Timeline")
                     }
                 }
 
                 // Dashboard View
                 if (showDashboard) {
-                    item {
-                        DashboardView(viewModel.completionStats.value, colorScheme)
-                    }
+                    DashboardView(viewModel.completionStats.value, colorScheme)
                 }
 
-                //  // Calendar View
+                // Calendar View
                 if (showCalendar) {
-                    item {
-                        CalendarView(visions, colorScheme)
-                    }
+                    CalendarView(visions, colorScheme)
                 }
 
                 // Input Form - Only show when necessary
                 if (showInputForm) {
-                    item {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp),
-                            elevation = CardDefaults.cardElevation(6.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = surfaceColor
-                            ),
-                            shape = RoundedCornerShape(20.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(24.dp)) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        elevation = CardDefaults.cardElevation(6.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = surfaceColor
+                        ),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(24.dp)) {
+                            Text(
+                                text = if (editingVision == null) "Create Your Vision" else "Edit Your Vision",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = colorScheme.primary
+                                ),
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            )
+
+                            OutlinedTextField(
+                                value = title,
+                                onValueChange = { title = it },
+                                label = { Text("Vision Title") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = colorScheme.primary,
+                                    unfocusedBorderColor = colorScheme.primary.copy(alpha = 0.5f),
+                                    focusedLabelColor = colorScheme.primary
+                                )
+                            )
+
+                            OutlinedTextField(
+                                value = description,
+                                onValueChange = { description = it },
+                                label = { Text("Description") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp)
+                                    .height(120.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = colorScheme.primary,
+                                    unfocusedBorderColor = colorScheme.primary.copy(alpha = 0.5f),
+                                    focusedLabelColor = colorScheme.primary
+                                )
+                            )
+
+                            // Safe category handling
+                            if (viewModel.categories.isNotEmpty()) {
+                                ExposedDropdownMenuBox(
+                                    expanded = expanded,
+                                    onExpandedChange = { expanded = !expanded }
+                                ) {
+                                    OutlinedTextField(
+                                        value = category,
+                                        onValueChange = { },
+                                        label = { Text("Category") },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .menuAnchor()
+                                            .padding(vertical = 6.dp),
+                                        readOnly = true,
+                                        shape = RoundedCornerShape(12.dp),
+                                        trailingIcon = {
+                                            Icon(
+                                                if (expanded) Icons.Filled.KeyboardArrowUp
+                                                else Icons.Filled.KeyboardArrowDown,
+                                                contentDescription = "Show categories",
+                                                tint = colorScheme.primary
+                                            )
+                                        },
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = colorScheme.primary,
+                                            unfocusedBorderColor = colorScheme.primary.copy(alpha = 0.5f),
+                                            focusedLabelColor = colorScheme.primary
+                                        )
+                                    )
+                                    ExposedDropdownMenu(
+                                        expanded = expanded,
+                                        onDismissRequest = { expanded = false }
+                                    ) {
+                                        viewModel.categories.forEach { cat ->
+                                            DropdownMenuItem(
+                                                text = { Text(cat) },
+                                                onClick = {
+                                                    category = cat
+                                                    expanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+//                            Button(
+//                                onClick = { launcher.launch("image/*") },
+//                                modifier = Modifier
+//                                    .padding(vertical = 12.dp)
+//                                    .align(Alignment.Start),
+//                                colors = ButtonDefaults.buttonColors(
+//                                    containerColor = colorScheme.secondary
+//                                ),
+//                                shape = RoundedCornerShape(8.dp)
+//                            ) {
+//                                Icon(
+//                                    Icons.Outlined.AddPhotoAlternate,
+//                                    contentDescription = "Upload",
+//                                    modifier = Modifier.size(18.dp)
+//                                )
+//                                Spacer(modifier = Modifier.width(6.dp))
+//                                Text("Upload Image")
+//                            }
+
+//                            // Display the selected image preview
+//                            imageUri?.let {
+//                                AsyncImage(
+//                                    model = it,
+//                                    contentDescription = "Selected Image",
+//                                    modifier = Modifier
+//                                        .size(120.dp)
+//                                        .clip(RoundedCornerShape(12.dp))
+//                                        .padding(vertical = 8.dp)
+//                                )
+//                            }
+
+                            // Template section - display horizontally scrollable
+                            if (viewModel.templates.isNotEmpty()) {
                                 Text(
-                                    text = if (editingVision == null) "Create Your Vision" else "Edit Your Vision",
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.Bold,
+                                    "Quick Templates",
+                                    style = MaterialTheme.typography.labelMedium.copy(
                                         color = colorScheme.primary
                                     ),
-                                    modifier = Modifier.padding(bottom = 16.dp)
+                                    modifier = Modifier.padding(vertical = 8.dp)
                                 )
-
-                                OutlinedTextField(
-                                    value = title,
-                                    onValueChange = { title = it },
-                                    label = { Text("Vision Title") },
+                                Row(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 6.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = colorScheme.primary,
-                                        unfocusedBorderColor = colorScheme.primary.copy(alpha = 0.5f),
-                                        focusedLabelColor = colorScheme.primary
-                                    )
-                                )
-
-                                OutlinedTextField(
-                                    value = description,
-                                    onValueChange = { description = it },
-                                    label = { Text("Description") },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 6.dp)
-                                        .height(120.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = colorScheme.primary,
-                                        unfocusedBorderColor = colorScheme.primary.copy(alpha = 0.5f),
-                                        focusedLabelColor = colorScheme.primary
-                                    )
-                                )
-
-                                // Safe category handling
-                                if (viewModel.categories.isNotEmpty()) {
-                                    ExposedDropdownMenuBox(
-                                        expanded = expanded,
-                                        onExpandedChange = { expanded = !expanded }
-                                    ) {
-                                        OutlinedTextField(
-                                            value = category,
-                                            onValueChange = { },
-                                            label = { Text("Category") },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .menuAnchor()
-                                                .padding(vertical = 6.dp),
-                                            readOnly = true,
-                                            shape = RoundedCornerShape(12.dp),
-                                            trailingIcon = {
-                                                Icon(
-                                                    if (expanded) Icons.Filled.KeyboardArrowUp
-                                                    else Icons.Filled.KeyboardArrowDown,
-                                                    contentDescription = "Show categories",
-                                                    tint = colorScheme.primary
-                                                )
+                                        .horizontalScroll(rememberScrollState())
+                                        .padding(bottom = 12.dp)
+                                ) {
+                                    viewModel.templates.forEach { template ->
+                                        OutlinedButton(
+                                            onClick = {
+                                                title = template.title
+                                                description = template.description
+                                                category = template.category
                                             },
-                                            colors = OutlinedTextFieldDefaults.colors(
-                                                focusedBorderColor = colorScheme.primary,
-                                                unfocusedBorderColor = colorScheme.primary.copy(alpha = 0.5f),
-                                                focusedLabelColor = colorScheme.primary
+                                            modifier = Modifier.padding(end = 8.dp),
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                containerColor = colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                contentColor = colorScheme.primary
+                                            ),
+                                            shape = RoundedCornerShape(20.dp),
+                                            border = ButtonDefaults.outlinedButtonBorder.copy(
+                                                brush = SolidColor(colorScheme.primary.copy(alpha = 0.3f))
                                             )
-                                        )
-                                        ExposedDropdownMenu(
-                                            expanded = expanded,
-                                            onDismissRequest = { expanded = false }
                                         ) {
-                                            viewModel.categories.forEach { cat ->
-                                                DropdownMenuItem(
-                                                    text = { Text(cat) },
-                                                    onClick = {
-                                                        category = cat
-                                                        expanded = false
-                                                    }
-                                                )
-                                            }
+                                            Text(template.title)
                                         }
                                     }
                                 }
+                            }
 
-                                Button(
-                                    onClick = { launcher.launch("image/*") },
-                                    modifier = Modifier
-                                        .padding(vertical = 12.dp)
-                                        .align(Alignment.Start),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = colorScheme.secondary
-                                    ),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Outlined.AddPhotoAlternate,
-                                        contentDescription = "Upload",
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Upload Image")
-                                }
-
-                                // Display the selected image preview
-                                imageUri?.let {
-                                    AsyncImage(
-                                        model = it,
-                                        contentDescription = "Selected Image",
-                                        modifier = Modifier
-                                            .size(120.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .padding(vertical = 8.dp)
-                                    )
-                                }
-
-                                // Template section - display horizontally scrollable
-                                if (viewModel.templates.isNotEmpty()) {
-                                    Text(
-                                        "Quick Templates",
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            color = colorScheme.primary
-                                        ),
-                                        modifier = Modifier.padding(vertical = 8.dp)
-                                    )
-                                    Row(
-                                        modifier = Modifier
-                                            .horizontalScroll(rememberScrollState())
-                                            .padding(bottom = 12.dp)
-                                    ) {
-                                        viewModel.templates.forEach { template ->
-                                            OutlinedButton(
-                                                onClick = {
-                                                    title = template.title
-                                                    description = template.description
-                                                    category = template.category
-                                                },
-                                                modifier = Modifier.padding(end = 8.dp),
-                                                colors = ButtonDefaults.outlinedButtonColors(
-                                                    containerColor = colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                                    contentColor = colorScheme.primary
-                                                ),
-                                                shape = RoundedCornerShape(20.dp),
-                                                border = ButtonDefaults.outlinedButtonBorder.copy(
-                                                    brush = SolidColor(colorScheme.primary.copy(alpha = 0.3f))
-                                                )
-                                            ) {
-                                                Text(template.title)
-                                            }
-                                        }
-                                    }
-                                }
-
-                                Button(
-                                    onClick = {
-                                        try {
-                                            // Validate required fields
-                                            if (title.isBlank()) {
-                                                coroutineScope.launch {
-                                                    snackbarHostState.showSnackbar("Title cannot be empty")
-                                                }
-                                                return@Button
-                                            }
-
-                                            val vision = Vision(
-                                                id = editingVision?.id ?: "",
-                                                title = title,
-                                                description = description,
-                                                category = category
-                                            )
-
-                                            if (editingVision == null) {
-                                                viewModel.addVision(vision, imageUri, context)
-                                                coroutineScope.launch {
-                                                    snackbarHostState.showSnackbar("Vision added successfully!")
-                                                }
-                                            } else {
-                                                viewModel.updateVision(vision.copy(id = editingVision!!.id), imageUri, context)
-                                                coroutineScope.launch {
-                                                    snackbarHostState.showSnackbar("Vision updated successfully!")
-                                                }
-                                            }
-
-                                            // Reset form
-                                            title = ""
-                                            description = ""
-                                            if (viewModel.categories.isNotEmpty()) {
-                                                category = viewModel.categories[0]
-                                            } else {
-                                                category = ""
-                                            }
-                                            imageUri = null
-                                            editingVision = null
-                                            showInputForm = false
-                                        } catch (e: Exception) {
-                                            Log.e("VisionScreen", "Error saving vision", e)
+                            Button(
+                                onClick = {
+                                    try {
+                                        // Validate required fields
+                                        if (title.isBlank()) {
                                             coroutineScope.launch {
-                                                snackbarHostState.showSnackbar("Error: ${e.message ?: "Unknown error"}")
+                                                snackbarHostState.showSnackbar("Title cannot be empty")
+                                            }
+                                            return@Button
+                                        }
+
+                                        val vision = Vision(
+                                            id = editingVision?.id ?: "",
+                                            title = title,
+                                            description = description,
+                                            category = category
+                                        )
+
+                                        if (editingVision == null) {
+                                            viewModel.addVision(vision, imageUri, context)
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Vision added successfully!")
+                                            }
+                                        } else {
+                                            viewModel.updateVision(vision.copy(id = editingVision!!.id), imageUri, context)
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Vision updated successfully!")
                                             }
                                         }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = colorScheme.primary
-                                    ),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 16.dp),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text(
-                                        if (editingVision == null) "Save Vision" else "Update Vision",
-                                        modifier = Modifier.padding(vertical = 6.dp)
-                                    )
-                                }
+
+                                        // Reset form
+                                        title = ""
+                                        description = ""
+                                        if (viewModel.categories.isNotEmpty()) {
+                                            category = viewModel.categories[0]
+                                        } else {
+                                            category = ""
+                                        }
+                                        imageUri = null
+                                        editingVision = null
+                                        showInputForm = false
+                                    } catch (e: Exception) {
+                                        Log.e("VisionScreen", "Error saving vision", e)
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Error: ${e.message ?: "Unknown error"}")
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = colorScheme.primary
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 16.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    if (editingVision == null) "Save Vision" else "Update Vision",
+                                    modifier = Modifier.padding(vertical = 6.dp)
+                                )
                             }
                         }
                     }
@@ -571,21 +636,19 @@ fun VisionScreen(navController: NavController, viewModel: VisionViewModel = view
 
                 // Vision List by Category
                 groupedVisions.forEach { (cat, visionsList) ->
-                    stickyHeader {
-                        Text(
-                            text = cat,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = colorScheme.primary
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                                .padding(vertical = 12.dp, horizontal = 16.dp)
-                        )
-                    }
+                    Text(
+                        text = cat,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.primary
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colorScheme.surfaceVariant.copy(alpha = 0.7f))
+                            .padding(vertical = 12.dp, horizontal = 16.dp)
+                    )
 
-                    items(visionsList, key = { it.id }) { vision ->
+                    visionsList.forEach { vision ->
                         var offsetX by remember { mutableStateOf(0f) }
                         var isSwiped by remember { mutableStateOf(false) }
 
@@ -683,35 +746,35 @@ fun VisionScreen(navController: NavController, viewModel: VisionViewModel = view
 
                 // Empty state
                 if (visions.isEmpty()) {
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                Icons.Outlined.Lightbulb,
-                                contentDescription = "No visions",
-                                tint = colorScheme.primary.copy(alpha = 0.6f),
-                                modifier = Modifier.size(64.dp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Outlined.Lightbulb,
+                            contentDescription = "No visions",
+                            tint = colorScheme.primary.copy(alpha = 0.6f),
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Your vision board is empty",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                color = colorScheme.primary
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Your vision board is empty",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    color = colorScheme.primary
-                                )
-                            )
-                            Text(
-                                text = "Add your first vision to begin manifesting your dreams!",
-                                style = MaterialTheme.typography.bodyMedium,
-                                textAlign = TextAlign.Center,
-                                color = colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
+                        )
+                        Text(
+                            text = "Add your first vision to begin manifesting your dreams!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            color = colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp)) // Add some padding at the bottom
             }
         }
     }

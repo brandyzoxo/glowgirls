@@ -215,6 +215,7 @@ fun SpendingScreen(navController: NavController) {
                         )
                     }
 
+
                     item {
                         BudgetSuggestionsCard(
                             suggestions = suggestions,
@@ -237,8 +238,17 @@ fun SpendingScreen(navController: NavController) {
                     items(expenses.take(5)) { expense ->
                         ExpenseItem(expense, cardElevation)
                     }
+                    item {
+                        Button(onClick = { navController.navigate("budget_health") }) {
+                            Text("View Budget Health")
+                        }
+                    }
+
                 }
+
+
             }
+
         }
     }
 }

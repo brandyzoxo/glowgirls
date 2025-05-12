@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -45,11 +44,8 @@ import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
 import androidx.core.app.ActivityCompat
-import androidx.core.content.FileProvider
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.File
-import kotlin.collections.map
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

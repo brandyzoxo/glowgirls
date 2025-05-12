@@ -199,7 +199,7 @@ fun ChatRoomSelector(
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Add room button - Fixed to make it properly clickable
+            // Add room button
             item {
                 AddChatRoomChip(onClick = onAddChatRoom)
             }
@@ -218,7 +218,6 @@ fun ChatRoomSelector(
 
 @Composable
 fun AddChatRoomChip(onClick: () -> Unit) {
-    // Using a separate composable for the add button to ensure it's properly clickable
     val interactionSource = remember { MutableInteractionSource() }
 
     Box(
@@ -338,7 +337,8 @@ fun CreateChatRoomDialog(
         },
         text = {
             Column(
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedTextField(
                     value = roomName,
@@ -434,7 +434,8 @@ fun ChatMessageItem(message: ChatMessage, isOwnMessage: Boolean) {
             .padding(vertical = 2.dp),
         contentAlignment = if (isOwnMessage) Alignment.CenterEnd else Alignment.CenterStart
     ) {
-        Column(
+        // Message bubble without profile picture or username
+        Box(
             modifier = Modifier
                 .shadow(
                     elevation = 2.dp,
@@ -443,34 +444,26 @@ fun ChatMessageItem(message: ChatMessage, isOwnMessage: Boolean) {
                 .clip(messageBubbleShape)
                 .background(bubbleGradient)
                 .padding(14.dp)
-                .widthIn(max = 300.dp)
+                .widthIn(max = 260.dp)
         ) {
-            if (!isOwnMessage) {
+            Column {
                 Text(
-                    text = message.senderName,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = DeepRose
+                    text = message.message,
+                    color = if (isOwnMessage) Color.White else Color.DarkGray,
+                    style = MaterialTheme.typography.bodyMedium
                 )
+
                 Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = formatTimestamp(message.timestamp),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontStyle = FontStyle.Italic
+                    ),
+                    color = if (isOwnMessage) Color.White.copy(alpha = 0.7f) else Color.Gray,
+                    modifier = Modifier.align(Alignment.End)
+                )
             }
-
-            Text(
-                text = message.message,
-                color = if (isOwnMessage) Color.White else Color.DarkGray,
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = formatTimestamp(message.timestamp),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontStyle = FontStyle.Italic
-                ),
-                color = if (isOwnMessage) Color.White.copy(alpha = 0.7f) else Color.Gray,
-                modifier = Modifier.align(Alignment.End)
-            )
         }
     }
 }
@@ -556,7 +549,6 @@ fun ChatInputField(onSendMessage: (String) -> Unit) {
                     imageVector = Icons.Rounded.Send,
                     contentDescription = "Send",
                     tint = Color.White,
-                    modifier = Modifier.size(22.dp)
                 )
             }
         }

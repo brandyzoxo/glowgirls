@@ -271,7 +271,7 @@ fun SplashScreen(onNavigateToNext: () -> Unit) {
 
                 // Shadow effect
                 Image(
-                    painter = painterResource(id = R.drawable.logo),
+                    painter = painterResource(id = R.drawable.logo2),
                     contentDescription = null,
                     modifier = Modifier
                         .size(305.dp)
@@ -283,7 +283,7 @@ fun SplashScreen(onNavigateToNext: () -> Unit) {
                 // Main logo with shimmer overlay
                 Box {
                     Image(
-                        painter = painterResource(id = R.drawable.logo),
+                        painter = painterResource(id = R.drawable.logo2),
                         contentDescription = "Glow Girls Logo",
                         modifier = Modifier.size(300.dp)
                     )

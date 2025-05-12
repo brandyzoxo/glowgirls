@@ -1,4 +1,4 @@
-package com.example.glowgirls.ui.theme.screens.journal
+package com.example.glowgirls.ui.theme.screens.screens.journal
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -20,8 +20,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -551,11 +549,13 @@ fun EmotionPicker(
             modifier = Modifier.padding(vertical = 8.dp)
         )
 
-        Row(
+        // LazyRow for positive emotions
+        LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp)
         ) {
-            positiveEmotions.forEach { emotion ->
+            items(positiveEmotions) { emotion ->
                 EmotionItem(
                     emotion = emotion,
                     isSelected = selectedEmotion == emotion,
@@ -577,11 +577,13 @@ fun EmotionPicker(
             modifier = Modifier.padding(vertical = 8.dp)
         )
 
-        Row(
+        // LazyRow for challenging emotions
+        LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp)
         ) {
-            challengingEmotions.forEach { emotion ->
+            items(challengingEmotions) { emotion ->
                 EmotionItem(
                     emotion = emotion,
                     isSelected = selectedEmotion == emotion,
@@ -591,7 +593,6 @@ fun EmotionPicker(
         }
     }
 }
-
 @Composable
 fun EmotionItem(
     emotion: Emotion,

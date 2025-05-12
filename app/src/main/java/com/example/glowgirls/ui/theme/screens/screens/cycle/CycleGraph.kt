@@ -1,675 +1,636 @@
 package com.example.glowgirls.ui.theme.screens.screens.cycle
 
-import android.os.Build
-import androidx.annotation.RequiresApi
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.lifecycle.Observer
+import androidx.lifecycle.LiveData
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.rounded.CalendarToday
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import com.example.glowgirls.models.cycle.CycleData
+import com.example.glowgirls.models.cycle.Flow
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.Placeable
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.glowgirls.data.cycle.CycleViewModel
-import com.example.glowgirls.models.cycle.CycleData
+import com.example.glowgirls.models.cycle.DailyEntry
+import com.example.glowgirls.models.cycle.PhaseData
+import com.example.glowgirls.ui.theme.*
+
+// Added imports for charting library
+import com.patrykandpatrick.vico.compose.axis.horizontal.bottomAxis
+import com.patrykandpatrick.vico.compose.axis.vertical.startAxis
+import com.patrykandpatrick.vico.compose.chart.Chart
+import com.patrykandpatrick.vico.compose.chart.column.columnChart
+import com.patrykandpatrick.vico.compose.chart.line.lineChart
+import com.patrykandpatrick.vico.compose.style.ProvideChartStyle
+import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
+import com.patrykandpatrick.vico.core.entry.entryOf
+
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+// PROBLEM:
+// LocalContext.current can only be used inside a @Composable function or
+// within a composable scope (like LaunchedEffect, remember, etc.)
 
-data class CyclePhase(
-    val name: String,
-    val startDay: Int,
-    val endDay: Int,
-    val color: Color,
-    val description: String
-)
+// SOLUTION:
+// Move the context retrieval inside a composable scope
 
-// Color scheme matching CycleScreen
-val gradientColors = listOf(
-    Color(0xFFFEE3EC), // Light pink
-    Color(0xFFF5E1F7)  // Light lavender
-)
-val accentColor = Color(0xFFD76BA2)  // Rich pink
-val secondaryAccent = Color(0xFF9C6BC5) // Purple accent
-val cardColor = Color.White
-val textColor = Color(0xFF4A4A6A) // Dark purple-grey
-val lightTextColor = Color(0xFF8A8AA0) // Lighter text
-val buttonGradient = listOf(accentColor, secondaryAccent)
-
-@OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun CycleGraphScreen(navController: NavController) {
-    val cycleViewModel = CycleViewModel()
-    val context = LocalContext.current
-    var cycleData by remember { mutableStateOf<CycleData?>(null) }
-    var currentDay by remember { mutableStateOf(0) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf("") }
-
-    // Define phase colors matching CycleScreen aesthetic
-    val menstruationColor = accentColor
-    val follicularColor = Color(0xFF81C784) // Matches OVULATION from CycleScreen
-    val ovulatoryColor = Color(0xFFB2DFDB) // Matches FERTILE_WINDOW from CycleScreen
-    val lutealColor = secondaryAccent
-
-    LaunchedEffect(key1 = Unit) {
-        cycleViewModel.getCycleData(context) { data ->
-            isLoading = false
-
-            if (data != null) {
-                cycleData = data
-
-                // Calculate current day in cycle
-                if (data.lastPeriodDate.isNotEmpty()) {
-                    try {
-                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                        val lastPeriod = LocalDate.parse(data.lastPeriodDate, formatter)
-                        val today = LocalDate.now()
-                        val daysSinceLastPeriod = ChronoUnit.DAYS.between(lastPeriod, today).toInt()
-                        currentDay = (daysSinceLastPeriod % data.cycleLength.toInt()) + 1
-                    } catch (e: Exception) {
-                        errorMessage = "Error calculating cycle day: ${e.message}"
-                    }
-                }
-            } else {
-                errorMessage = "No cycle data found. Please add your cycle information first."
-            }
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Cycle Tracker",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            color = textColor,
-                            fontSize = 22.sp
-                        )
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = accentColor
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = cardColor
-                )
-            )
-        },
-        containerColor = Color.Transparent
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.verticalGradient(gradientColors))
-                .padding(paddingValues)
-        ) {
-            if (isLoading) {
-                LoadingState()
-            } else if (errorMessage.isNotEmpty()) {
-                ErrorState(errorMessage)
-            } else {
-                cycleData?.let { data ->
-                    val periodDuration = data.periodDuration.toInt()
-                    val cycleLength = data.cycleLength.toInt()
-
-                    val phases = listOf(
-                        CyclePhase(
-                            "Menstruation",
-                            1,
-                            periodDuration,
-                            menstruationColor,
-                            "Your period is active. Prioritize rest and self-care."
-                        ),
-                        CyclePhase(
-                            "Follicular",
-                            periodDuration + 1,
-                            7,
-                            follicularColor,
-                            "Estrogen rises as your body prepares for ovulation."
-                        ),
-                        CyclePhase(
-                            "Ovulatory",
-                            8,
-                            14,
-                            ovulatoryColor,
-                            "Peak fertility phase. Estrogen peaks."
-                        ),
-                        CyclePhase(
-                            "Luteal",
-                            15,
-                            cycleLength,
-                            lutealColor,
-                            "Progesterone dominates. PMS symptoms may appear."
-                        )
-                    )
-
-                    val currentPhase = phases.find {
-                        currentDay in it.startDay..it.endDay
-                    } ?: phases[0]
-
-                    val daysToNextPeriod = cycleLength - currentDay + 1
-
-                    CycleContent(
-                        modifier = Modifier.padding(24.dp),
-                        currentDay = currentDay,
-                        cycleLength = cycleLength,
-                        currentPhase = currentPhase,
-                        phases = phases,
-                        daysToNextPeriod = daysToNextPeriod,
-                        cycleData = data
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun LoadingState() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            CircularProgressIndicator(
-                color = accentColor,
-                strokeWidth = 4.dp
-            )
-            Text(
-                "Loading your cycle data...",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = textColor,
-                    fontWeight = FontWeight.Medium
-                )
-            )
-        }
-    }
-}
-
-@Composable
-fun ErrorState(errorMessage: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp)
-                .shadow(4.dp, RoundedCornerShape(24.dp)),
-            colors = CardDefaults.cardColors(containerColor = cardColor),
-            shape = RoundedCornerShape(24.dp)
-        ) {
-            Text(
-                text = errorMessage,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    color = textColor,
-                    fontWeight = FontWeight.Medium
-                ),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(20.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun CycleContent(
-    modifier: Modifier = Modifier,
-    currentDay: Int,
-    cycleLength: Int,
-    currentPhase: CyclePhase,
-    phases: List<CyclePhase>,
-    daysToNextPeriod: Int,
-    cycleData: CycleData
+fun CycleGraphScreen(
+    navController: NavController,
+    cycleViewModel: CycleViewModel = viewModel(),
+    onBackClick: () -> Unit
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        DayCounter(currentDay, cycleLength, currentPhase.color)
-        CurrentPhaseCard(currentPhase)
-        EnhancedCycleGraph(cycleLength, phases, currentDay)
-        ImportantDatesCard(cycleData, daysToNextPeriod)
-        PhaseLegends(phases)
-        Spacer(modifier = Modifier.height(32.dp))
-    }
-}
+    val cycleData by cycleViewModel.cycleData.collectAsState()
+    val entries by cycleViewModel.dailyEntries.observeAsState(emptyList())
+    val currentPhase by cycleViewModel.currentPhase.collectAsState()
 
-@Composable
-fun DayCounter(currentDay: Int, cycleLength: Int, phaseColor: Color) {
-    Card(
+    val context = LocalContext.current // Get context here, inside the composable
+    val scrollState = rememberScrollState()
+
+    // Load data if not already loaded
+    LaunchedEffect(Unit) {
+        if (cycleData == null) {
+            cycleViewModel.getCurrentCycleData(context) // Use the local context variable
+        }
+        if (entries.isEmpty()) {
+            cycleViewModel.loadDailyEntries()
+        }
+    }
+
+    // Rest of your code...
+   // State for selected graph type
+    var selectedGraphType by remember { mutableStateOf("Cycle") }
+
+    Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(24.dp)),
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        shape = RoundedCornerShape(24.dp)
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(scrollState)
     ) {
+        // Top Bar with back button
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.Center,
+                .padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(phaseColor.copy(alpha = 0.2f))
-                    .border(1.dp, phaseColor.copy(alpha = 0.5f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = currentDay.toString(),
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        color = phaseColor,
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column {
-                Text(
-                    "DAY OF CYCLE",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        color = lightTextColor,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                )
-                Text(
-                    "Day $currentDay of $cycleLength",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        color = textColor,
-                        fontWeight = FontWeight.Medium
-                    )
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun CurrentPhaseCard(currentPhase: CyclePhase) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(24.dp)),
-        colors = CardDefaults.cardColors(containerColor = currentPhase.color.copy(alpha = 0.1f)),
-        shape = RoundedCornerShape(24.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .background(currentPhase.color)
-                        .border(1.dp, Color.White, CircleShape)
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Text(
-                    text = "${currentPhase.name} Phase",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        color = textColor,
-                        fontWeight = FontWeight.SemiBold
-                    )
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back"
                 )
             }
 
             Text(
-                text = currentPhase.description,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = lightTextColor
-                )
+                text = "Cycle Analytics",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
             )
+        }
+
+        // Graph type selection
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            GraphTypeButton(
+                text = "Cycle",
+                isSelected = selectedGraphType == "Cycle",
+                onClick = { selectedGraphType = "Cycle" }
+            )
+
+            GraphTypeButton(
+                text = "Symptoms",
+                isSelected = selectedGraphType == "Symptoms",
+                onClick = { selectedGraphType = "Symptoms" }
+            )
+
+            GraphTypeButton(
+                text = "Mood",
+                isSelected = selectedGraphType == "Mood",
+                onClick = { selectedGraphType = "Mood" }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Show loading indicator if data is not available
+        if (cycleData == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = AccentColor)
+            }
+        } else {
+            // Show selected graph
+            when (selectedGraphType) {
+                "Cycle" -> CycleGraph(entries, currentPhase)
+                "Symptoms" -> SymptomsBarGraph(entries)
+                "Mood" -> MoodGraph(entries)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Additional stats section
+        cycleData?.let { cycle ->
+            CycleStatsSection(cycle, entries)
         }
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun EnhancedCycleGraph(
-    cycleLength: Int,
-    phases: List<CyclePhase>,
-    currentDay: Int
-) {
+fun CycleGraph(entries: List<DailyEntry>, currentPhase: PhaseData?) {
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val today = LocalDate.now()
+
+    // Get entries from the last 60 days
+    val startDay = today.minusDays(60)
+    val endDay = today.plusDays(14)  // Include some future days for predictions
+
+    // Process entries into chart data
+    val dataPoints = mutableListOf<com.patrykandpatrick.vico.core.entry.ChartEntry>()
+    val dayLabels = mutableListOf<String>()
+
+    var currentDay = startDay
+    while (!currentDay.isAfter(endDay)) {
+        val dayStr = currentDay.format(formatter)
+        val entry = entries.find { it.date == dayStr }
+
+        // Add point for cycle day (if available) or based on calculation
+        val cycleDay = entry?.cycleDay ?: calculateCycleDay(currentDay, entries)
+
+        if (cycleDay != null) {
+            dataPoints.add(entryOf(dataPoints.size.toFloat(), cycleDay.toFloat()))
+
+            // Add label for every 7th day
+            if (ChronoUnit.DAYS.between(startDay, currentDay) % 7 == 0L) {
+                dayLabels.add(currentDay.format(DateTimeFormatter.ofPattern("MM/dd")))
+            } else {
+                dayLabels.add("")
+            }
+        }
+
+        currentDay = currentDay.plusDays(1)
+    }
+
+    // Create chart model
+    val chartEntryModel = ChartEntryModelProducer(dataPoints).getModel()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp)
-            .shadow(4.dp, RoundedCornerShape(24.dp)),
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        shape = RoundedCornerShape(24.dp)
+            .height(300.dp)
+            .padding(vertical = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 24.dp)
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val width = size.width
-                val height = size.height
-                val segmentWidth = width / cycleLength
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Your Cycle Pattern",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp
+            )
 
-                // Draw phase sections
-                phases.forEach { phase ->
-                    val startX = (phase.startDay - 1) * segmentWidth
-                    val phaseWidth = (phase.endDay - phase.startDay + 1) * segmentWidth
+            Spacer(modifier = Modifier.height(16.dp))
 
-                    drawRect(
-                        color = phase.color.copy(alpha = 0.2f),
-                        topLeft = Offset(startX, 0f),
-                        size = Size(phaseWidth, height)
+            // Display the phase indicator
+            currentPhase?.let { phase ->
+                // Assumes PhaseData has a 'name' property
+                Text(
+                    text = "Current Phase: ${phase.name}",
+                    fontSize = 14.sp,
+                    color = getPhaseStyling(phase.name).color
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            if (dataPoints.isNotEmpty()) {
+                ProvideChartStyle {
+                    Chart(
+                        chart = lineChart(),
+                        model = chartEntryModel,
+                        startAxis = startAxis(),
+                        bottomAxis = bottomAxis(
+                            valueFormatter = { value, _ ->
+                                val index = value.toInt()
+                                if (index >= 0 && index < dayLabels.size) {
+                                    dayLabels[index]
+                                } else {
+                                    ""
+                                }
+                            }
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
                     )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Not enough cycle data to generate graph")
+                }
+            }
+        }
+    }
+}
 
-                    drawRect(
-                        color = phase.color.copy(alpha = 0.4f),
-                        topLeft = Offset(startX, 0f),
-                        size = Size(phaseWidth, height),
-                        style = Stroke(width = 2f)
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun SymptomsBarGraph(entries: List<DailyEntry>) {
+    // Count frequency of each symptom
+    val symptomCounts = mutableMapOf<String, Int>()
+
+    entries.forEach { entry ->
+        entry.symptoms.forEach { symptom ->
+            symptomCounts[symptom] = (symptomCounts[symptom] ?: 0) + 1
+        }
+    }
+
+    // Sort symptoms by frequency and take top 8
+    val topSymptoms = symptomCounts.entries
+        .sortedByDescending { it.value }
+        .take(8)
+
+    // Create bar chart data
+    val dataPoints = topSymptoms.mapIndexed { index, entry ->
+        entryOf(index.toFloat(), entry.value.toFloat())
+    }
+
+    val chartEntryModel = ChartEntryModelProducer(dataPoints).getModel()
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(350.dp)
+            .padding(vertical = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Common Symptoms",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (topSymptoms.isNotEmpty()) {
+                ProvideChartStyle {
+                    Chart(
+                        chart = columnChart(),
+                        model = chartEntryModel,
+                        startAxis = startAxis(),
+                        bottomAxis = bottomAxis(
+                            valueFormatter = { value, _ ->
+                                val index = value.toInt()
+                                if (index >= 0 && index < topSymptoms.size) {
+                                    val symptom = topSymptoms[index].key
+                                    if (symptom.length > 10) {
+                                        symptom.substring(0, 7) + "..."
+                                    } else {
+                                        symptom
+                                    }
+                                } else {
+                                    ""
+                                }
+                            }
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
                     )
                 }
 
-                // Draw current day indicator
-                val currentX = (currentDay - 1) * segmentWidth + (segmentWidth / 2)
-
-                drawCircle(
-                    color = Color.Black.copy(alpha = 0.1f),
-                    radius = 10f,
-                    center = Offset(currentX, height / 2 + 1)
-                )
-
-                drawCircle(
-                    color = Color.White,
-                    radius = 8f,
-                    center = Offset(currentX, height / 2)
-                )
-
-                drawCircle(
-                    color = phases.find { currentDay in it.startDay..it.endDay }?.color ?: accentColor,
-                    radius = 6f,
-                    center = Offset(currentX, height / 2)
-                )
+                // Legend for longer symptom names
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    topSymptoms.forEachIndexed { index, entry ->
+                        if (entry.key.length > 10) {
+                            Text(
+                                text = "${index + 1}: ${entry.key}",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No symptom data recorded yet")
+                }
             }
-
-            Text(
-                text = "1",
-                style = MaterialTheme.typography.bodySmall.copy(
-                    color = textColor,
-                    fontWeight = FontWeight.Medium
-                ),
-                modifier = Modifier.align(Alignment.BottomStart)
-            )
-
-            Text(
-                text = cycleLength.toString(),
-                style = MaterialTheme.typography.bodySmall.copy(
-                    color = textColor,
-                    fontWeight = FontWeight.Medium
-                ),
-                modifier = Modifier.align(Alignment.BottomEnd)
-            )
         }
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ImportantDatesCard(data: CycleData, daysToNextPeriod: Int) {
+fun MoodGraph(entries: List<DailyEntry>) {
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val today = LocalDate.now()
+
+    // Get entries from the last 30 days with mood data
+    val startDay = today.minusDays(30)
+
+    // Filter entries with mood data in the date range
+    val moodEntries = entries.filter { entry ->
+        try {
+            val entryDate = LocalDate.parse(entry.date, formatter)
+            !entryDate.isBefore(startDay) && !entryDate.isAfter(today) && entry.mood.isNotBlank()
+        } catch (e: Exception) {
+            false
+        }
+    }.sortedBy { it.date }
+
+    // Map moods to numerical values for the graph
+    val moodValues = mapOf(
+        "Happy" to 5f,
+        "Good" to 4f,
+        "Neutral" to 3f,
+        "Sad" to 2f,
+        "Irritable" to 2f,
+        "Anxious" to 2f,
+        "Depressed" to 1f
+    )
+
+    // Process entries into chart data
+    val dataPoints = moodEntries.mapIndexed { index, entry ->
+        val moodValue = moodValues[entry.mood] ?: 3f
+        entryOf(index.toFloat(), moodValue)
+    }
+
+    val chartEntryModel = ChartEntryModelProducer(dataPoints).getModel()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(24.dp)),
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        shape = RoundedCornerShape(24.dp)
+            .height(300.dp)
+            .padding(vertical = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Rounded.CalendarToday,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Key Dates",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        color = textColor,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                )
-            }
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Mood Tracking",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp
+            )
 
-            DateItem("Last Period", data.lastPeriodDate)
-            DateItem("Next Period", data.nextPeriodDate)
-            DateItem("Ovulation", data.ovulationDate)
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Brush.horizontalGradient(buttonGradient))
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Days until next period: $daysToNextPeriod",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+            if (moodEntries.isNotEmpty()) {
+                ProvideChartStyle {
+                    Chart(
+                        chart = lineChart(),
+                        model = chartEntryModel,
+                        startAxis = startAxis(
+                            valueFormatter = { value, _ ->
+                                when (value.toInt()) {
+                                    5 -> "Happy"
+                                    4 -> "Good"
+                                    3 -> "Neutral"
+                                    2 -> "Low"
+                                    1 -> "Very Low"
+                                    else -> ""
+                                }
+                            }
+                        ),
+                        bottomAxis = bottomAxis(
+                            valueFormatter = { value, _ ->
+                                val index = value.toInt()
+                                if (index >= 0 && index < moodEntries.size) {
+                                    try {
+                                        val date = LocalDate.parse(moodEntries[index].date, formatter)
+                                        date.format(DateTimeFormatter.ofPattern("MM/dd"))
+                                    } catch (e: Exception) {
+                                        ""
+                                    }
+                                } else {
+                                    ""
+                                }
+                            }
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
                     )
-                )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No mood data recorded in the last 30 days")
+                }
             }
         }
     }
 }
 
 @Composable
-fun DateItem(label: String, date: String) {
+fun GraphTypeButton(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isSelected) AccentColor else Color.LightGray.copy(alpha = 0.5f),
+            contentColor = if (isSelected) Color.White else Color.Black
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Text(text)
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun CycleStatsSection(cycle: CycleData, entries: List<DailyEntry>) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Cycle Statistics",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            StatRow("Cycle Length", "${cycle.cycleLength} days")
+            StatRow("Period Duration", "${cycle.periodDuration} days")
+
+            // Calculate most common symptoms
+            val topSymptoms = entries
+                .flatMap { it.symptoms }
+                .groupingBy { it }
+                .eachCount()
+                .entries
+                .sortedByDescending { it.value }
+                .take(3)
+                .map { it.key }
+                .joinToString(", ")
+
+            StatRow("Common Symptoms", if (topSymptoms.isBlank()) "None recorded" else topSymptoms)
+
+            // Calculate average mood
+            val moodCounts = entries
+                .filter { it.mood.isNotBlank() }
+                .groupingBy { it.mood }
+                .eachCount()
+
+            val mostCommonMood = moodCounts.entries
+                .maxByOrNull { it.value }
+                ?.key ?: "No data"
+
+            StatRow("Most Common Mood", mostCommonMood)
+        }
+    }
+}
+
+@Composable
+fun StatRow(label: String, value: String) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                color = lightTextColor
-            )
+            fontSize = 14.sp,
+            color = Color.Gray
         )
+
         Text(
-            text = date,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = FontWeight.Medium,
-                color = textColor
-            )
+            text = value,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium
         )
     }
 }
 
-@Composable
-fun PhaseLegends(phases: List<CyclePhase>) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(24.dp)),
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        shape = RoundedCornerShape(24.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                "Cycle Phases",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    color = textColor,
-                    fontWeight = FontWeight.SemiBold
-                )
-            )
+@RequiresApi(Build.VERSION_CODES.O)
+private fun calculateCycleDay(date: LocalDate, entries: List<DailyEntry>): Int? {
+    // Find the most recent period start before this date
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                phases.forEach { phase ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(12.dp)
-                                .clip(CircleShape)
-                                .background(phase.color)
-                                .border(1.dp, Color.White, CircleShape)
-                        )
-                        Text(
-                            text = phase.name,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = textColor,
-                                fontWeight = FontWeight.Medium
-                            )
-                        )
-                    }
-                }
-            }
+    val periodEntries = entries
+        .filter { entry ->
+            // Assumes DailyEntry.flow is of type Flow
+            entry.flow != null && entry.flow != Flow.MEDIUM
+        }
+        .sortedByDescending { it.date }
+
+    // Find the most recent period start date before or on the given date
+    val mostRecentPeriod = periodEntries.firstOrNull { entry ->
+        try {
+            val entryDate = LocalDate.parse(entry.date, formatter)
+            !entryDate.isAfter(date)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    return mostRecentPeriod?.let {
+        try {
+            val periodStart = LocalDate.parse(it.date, formatter)
+            ChronoUnit.DAYS.between(periodStart, date).toInt() + 1
+        } catch (e: Exception) {
+            null
         }
     }
 }
 
-@Composable
-fun FlowRow(
-    modifier: Modifier = Modifier,
-    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
-    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
-    content: @Composable () -> Unit
-) {
-    Layout(
-        content = content,
-        modifier = modifier
-    ) { measurables, constraints ->
-        val horizontalGapPx = 0
-        val verticalGapPx = 0
-
-        val rows = mutableListOf<MeasuredRow>()
-        var rowConstraints = constraints
-        var rowPlaceables = mutableListOf<Placeable>()
-        var rowWidth = 0
-        var rowHeight = 0
-
-        measurables.forEach { measurable ->
-            val placeable = measurable.measure(rowConstraints)
-
-            if (rowWidth + placeable.width > constraints.maxWidth) {
-                rows.add(
-                    MeasuredRow(
-                        placeables = rowPlaceables,
-                        width = rowWidth - horizontalGapPx,
-                        height = rowHeight
-                    )
-                )
-
-                rowPlaceables = mutableListOf()
-                rowWidth = 0
-                rowHeight = 0
-            }
-
-            rowPlaceables.add(placeable)
-            rowWidth += placeable.width + horizontalGapPx
-            rowHeight = maxOf(rowHeight, placeable.height)
-        }
-
-        if (rowPlaceables.isNotEmpty()) {
-            rows.add(
-                MeasuredRow(
-                    placeables = rowPlaceables,
-                    width = rowWidth - horizontalGapPx,
-                    height = rowHeight
-                )
-            )
-        }
-
-        val layoutHeight = rows.sumOf { row -> row.height } + maxOf(0, rows.size - 1) * verticalGapPx
-        val layoutWidth = constraints.maxWidth
-
-        layout(layoutWidth, layoutHeight) {
-            var y = 0
-
-            rows.forEach { row ->
-                var x = when (horizontalArrangement) {
-                    Arrangement.Start -> 0
-                    Arrangement.Center -> (layoutWidth - row.width) / 2
-                    Arrangement.End -> layoutWidth - row.width
-                    else -> 0
-                }
-
-                row.placeables.forEach { placeable ->
-                    placeable.placeRelative(x, y)
-                    x += placeable.width + horizontalGapPx
-                }
-                y += row.height + verticalGapPx
-            }
-        }
+// Helper function to get styling based on cycle phase
+private fun getPhaseStyling(phaseName: String): PhaseStyling {
+    return when (phaseName) {
+        "Menstrual" -> PhaseStyling(Color(0xFFE57373)) // Reddish
+        "Follicular" -> PhaseStyling(Color(0xFF81C784)) // Greenish
+        "Ovulatory" -> PhaseStyling(Color(0xFF64B5F6)) // Blueish
+        "Luteal" -> PhaseStyling(Color(0xFFFFB74D)) // Orangish
+        else -> PhaseStyling(Color.Gray)
     }
 }
 
-private data class MeasuredRow(
-    val placeables: List<Placeable>,
-    val width: Int,
-    val height: Int
+data class PhaseStyling(
+    val color: Color
 )
+
+// Extensions for observeAsState
+@Composable
+fun <T> LiveData<T>.observeAsState(initial: T): State<T> {
+    val state = remember { mutableStateOf(initial) }
+
+    // Capture the lifecycle owner from composition
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(this) {
+        val observer = Observer<T> { value ->
+            if (value != null) {
+                state.value = value
+            }
+        }
+
+        // Use the captured lifecycleOwner variable
+        observe(lifecycleOwner, observer)
+
+        onDispose {
+            removeObserver(observer)
+        }
+    }
+
+    return state
+}
